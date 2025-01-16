@@ -1,0 +1,9 @@
+[build]
+target = "riscv64gc-unknown-none-elf"
+#target = "x86_64-unknown-linux-gnu"
+
+[target.riscv64gc-unknown-none-elf]
+ rustflags = [
+     #Makefile里会 cp linker-qemu.ld -> linker.ld, 正常的cargo build会失败
+     "-Clink-arg=-Tsrc/linker.ld", "-Cforce-frame-pointers=yes"
+ ]

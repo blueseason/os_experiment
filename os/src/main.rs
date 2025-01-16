@@ -2,10 +2,18 @@
 #![no_std]
 #![no_main]
 
+pub mod batch;
+#[macro_use]
 mod console;
 mod lang_item;
 mod logging;
 mod sbi;
+mod stack_trace;
+mod sync;
+pub mod syscall;
+pub mod trap;
+global_asm!(include_str!("entry.asm"));
+global_asm!(include_str!("link_app.S"));
 
 use core::arch::global_asm;
 use log::*;
@@ -47,7 +55,10 @@ pub fn rust_main() -> ! {
     );
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
 
-    sbi::shutdown(false)
+    trap::init();
+    batch::init();
+    batch::run_next_app();
+    //    sbi::shutdown(false)
     //    panic!("Shutdown machine");
 }
 
@@ -69,4 +80,3 @@ pub extern "C" fn _start() -> ! {
     loop {}
 }
 */
-global_asm!(include_str!("entry.asm"));

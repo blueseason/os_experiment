@@ -1,0 +1,12 @@
+[package]
+name = "user_lib"
+version = "0.1.0"
+#edition = "2024" #2024 #[no_mangle]  需要加 unsafe #[unsafe(no_mangle)]
+edition = "2018"
+
+[dependencies]
+riscv = { git = "https://github.com/rcore-os/riscv", features = ["inline-asm"] }
+
+[profile.release]
+debug = true
+opt-level = 0 # qemu-riscv64 target/riscv64gc-unknown-none-elf/release/00hello 执行会segment fault
