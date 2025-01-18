@@ -40,7 +40,7 @@ __alltraps:
 __restore:
     # case1: start running app by __restore
     # case2: back to U after handling trap
-    mv sp, a0
+    # mv sp, a0  #在batch 需要将ush_context 的返回值是内核栈压入 Trap 上下文之后的栈顶，它会被作为 __restore 的参数
     # now sp->kernel stack(after allocated), sscratch->user stack
     # restore sstatus/sepc
     ld t0, 32*8(sp)
@@ -62,4 +62,3 @@ __restore:
     # now sp->kernel stack, sscratch->user stack
     csrrw sp, sscratch, sp
     sret
- 

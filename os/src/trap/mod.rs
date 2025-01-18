@@ -1,6 +1,5 @@
 mod context;
 
-use crate::batch::run_next_app;
 use crate::{println, syscall::syscall};
 use core::arch::global_asm;
 use riscv::register::{
@@ -34,12 +33,12 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
 
         Trap::Exception(Exception::StoreFault) | Trap::Exception(Exception::StorePageFault) => {
             println!("[kernal] IllegalInstrauction in application, kernel  killed it");
-            run_next_app();
+            //            run_next_app();
         }
 
         Trap::Exception(Exception::IllegalInstruction) => {
             println!("[kernel] IllegalInstruction in application, kernel killed it.");
-            run_next_app();
+            //run_next_app();
         }
         _ => {
             panic!(

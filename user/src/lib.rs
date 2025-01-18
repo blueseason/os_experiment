@@ -1,8 +1,6 @@
 #![no_std]
 #![feature(linkage)]
 
-use syscall::*;
-
 pub mod console;
 mod lang_items;
 mod syscall;
@@ -32,6 +30,8 @@ fn clear_bss() {
     });
 }
 
+use syscall::*;
+
 pub fn write(fd: usize, buf: &[u8]) -> isize {
     sys_write(fd, buf)
 }
@@ -42,4 +42,8 @@ pub fn exit(exit_code: i32) -> isize {
 
 pub fn get_task_info() -> isize {
     sys_process_info()
+}
+
+pub fn yield_() -> isize {
+    sys_yield()
 }

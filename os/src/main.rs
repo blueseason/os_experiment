@@ -2,10 +2,13 @@
 #![no_std]
 #![no_main]
 
-pub mod batch;
+//pub mod batch;
+mod config;
+pub mod task;
 #[macro_use]
 mod console;
 mod lang_item;
+mod loader;
 mod logging;
 mod sbi;
 mod stack_trace;
@@ -56,8 +59,9 @@ pub fn rust_main() -> ! {
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
 
     trap::init();
-    batch::init();
-    batch::run_next_app();
+    loader::load_apps();
+    task::run_first_task();
+    panic!("Unreachable in rust_main!");
     //    sbi::shutdown(false)
     //    panic!("Shutdown machine");
 }
