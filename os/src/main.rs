@@ -2,11 +2,15 @@
 #![no_std]
 #![no_main]
 
+#[path = "board/qemu.rs"]
+mod board;
+
 //pub mod batch;
 mod config;
 pub mod task;
 #[macro_use]
 mod console;
+
 mod lang_item;
 mod loader;
 mod logging;
@@ -14,6 +18,7 @@ mod sbi;
 mod stack_trace;
 mod sync;
 pub mod syscall;
+mod timer;
 pub mod trap;
 global_asm!(include_str!("entry.asm"));
 global_asm!(include_str!("link_app.S"));
@@ -60,6 +65,8 @@ pub fn rust_main() -> ! {
 
     trap::init();
     loader::load_apps();
+    trap::enable_timer_interrupt();
+    timer::set_next_trigger();
     task::run_first_task();
     panic!("Unreachable in rust_main!");
     //    sbi::shutdown(false)

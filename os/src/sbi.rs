@@ -14,6 +14,12 @@ pub fn console_putchar(c: usize) {
     sbi_rt::legacy::console_putchar(c);
 }
 
+/// use sbi call to set timer
+pub fn set_timer(timer: usize) {
+    // 一旦计数器 mtime 的值超过了 mtimecmp，就会触发一次时钟中断。通过设置 mtimecmp 的值来决定下一次时钟中断何时触发
+    // as _ to let the compiler infer the the type
+    sbi_rt::set_timer(timer as _);
+}
 pub fn shutdown(failure: bool) -> ! {
     if !failure {
         system_reset(Shutdown, NoReason);

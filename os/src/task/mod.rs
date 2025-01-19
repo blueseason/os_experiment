@@ -6,6 +6,7 @@ use crate::{
     println,
     sbi::shutdown,
     sync::UPSafeCell,
+    timer::get_time_ms,
 };
 use context::TaskContext;
 use lazy_static::*;
@@ -14,6 +15,8 @@ use task::{TaskControlBlock, TaskStatus};
 
 mod context;
 mod switch;
+// "Module inception" occurs when a module inside a file has the same name as the file itself.
+#[allow(clippy::module_inception)]
 mod task;
 
 pub struct TaskManager {
@@ -25,6 +28,8 @@ pub struct TaskManagerInner {
     /// task list
     tasks: [TaskControlBlock; MAX_APP_NUM],
     current_task: usize,
+
+    last_timestamp: usize,
 }
 
 lazy_static! {
@@ -33,6 +38,8 @@ lazy_static! {
         let mut tasks = [TaskControlBlock {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
+            user_time: 0,
+            kernel_time: 0,
         }; MAX_APP_NUM];
 
         for (i, task) in tasks.iter_mut().enumerate() {
@@ -46,12 +53,20 @@ lazy_static! {
                 UPSafeCell::new(TaskManagerInner {
                     tasks,
                     current_task: 0,
+                    last_timestamp: 0,
                 })
             },
         }
     };
 }
 
+impl TaskManagerInner {
+    fn refresh_get_time(&mut self) -> usize {
+        let start_time = self.last_timestamp;
+        self.last_timestamp = get_time_ms();
+        self.last_timestamp - start_time
+    }
+}
 impl TaskManager {
     /// Run the first task in task list.
     ///
@@ -61,6 +76,9 @@ impl TaskManager {
         let task0 = &mut inner.tasks[0];
         task0.task_status = TaskStatus::Running;
         let next_task_cx_ptr = &task0.task_cx as *const TaskContext;
+
+        //开始记录时间
+        inner.refresh_get_time();
         drop(inner);
         let mut _unused = TaskContext::zero_init();
         // before this, we should drop local variables that must be dropped manually
@@ -74,6 +92,7 @@ impl TaskManager {
     fn mark_current_suspended(&self) {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
+        inner.tasks[current].kernel_time += inner.refresh_get_time();
         inner.tasks[current].task_status = TaskStatus::Ready;
     }
 
@@ -81,6 +100,11 @@ impl TaskManager {
     fn mark_current_exited(&self) {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
+        inner.tasks[current].kernel_time += inner.refresh_get_time();
+        println!(
+            "[task {} exited. user_time: {} ms, kernle_time: {} ms.]",
+            current, inner.tasks[current].user_time, inner.tasks[current].kernel_time
+        );
         inner.tasks[current].task_status = TaskStatus::Exited;
     }
 
@@ -116,6 +140,20 @@ impl TaskManager {
             shutdown(false);
         }
     }
+
+    /// 统计内核时间，从现在开始算的是用户时间
+    fn user_time_start(&self) {
+        let mut inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        inner.tasks[current].kernel_time += inner.refresh_get_time();
+    }
+
+    /// 统计用户时间，从现在开始算的是内核时间
+    fn user_time_end(&self) {
+        let mut inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        inner.tasks[current].user_time += inner.refresh_get_time();
+    }
 }
 
 /// run first task
@@ -148,4 +186,14 @@ pub fn suspend_current_and_run_next() {
 pub fn exit_current_and_run_next() {
     mark_current_exited();
     run_next_task();
+}
+
+/// 统计内核时间，从现在开始算的是用户时间
+pub fn user_time_start() {
+    TASK_MANAGER.user_time_start()
+}
+
+/// 统计用户时间，从现在开始算的是内核时间
+pub fn user_time_end() {
+    TASK_MANAGER.user_time_end()
 }
