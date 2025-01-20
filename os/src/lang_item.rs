@@ -1,7 +1,9 @@
 use core::panic::PanicInfo;
 
+#[cfg(not(test))]
 use crate::{println, sbi::shutdown};
 
+#[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     if let Some(location) = info.location() {
@@ -18,4 +20,10 @@ fn panic(info: &PanicInfo) -> ! {
         print_stack_trace();
     }*/
     shutdown(true)
+}
+
+#[cfg(test)]
+#[panic_handler]
+fn panic_test(_: &PanicInfo) -> ! {
+    loop {}
 }

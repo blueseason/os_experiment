@@ -7,3 +7,7 @@ target = "riscv64gc-unknown-none-elf"
      #Makefile里会 cp linker-qemu.ld -> linker.ld, 正常的cargo build会失败
      "-Clink-arg=-Tsrc/linker.ld", "-Cforce-frame-pointers=yes"
  ]
+
+[target.'cfg(target_os = "none")']
+#runner = "cargo run --manifest-path disk_image/Cargo.toml --bin runner --quiet"
+#runner = "bootimage runner"

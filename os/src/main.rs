@@ -1,6 +1,9 @@
 #![deny(warnings)]
 #![no_std]
 #![no_main]
+#![feature(custom_test_frameworks)]
+#![test_runner(crate::test_runner)]
+#![reexport_test_harness_main = "test_main"]
 
 #[path = "board/qemu.rs"]
 mod board;
@@ -26,6 +29,14 @@ global_asm!(include_str!("link_app.S"));
 use core::arch::global_asm;
 use log::*;
 
+#[cfg(test)]
+pub fn test_runner(tests: &[&dyn Fn()]) {
+    println!("Running {} tests", tests.len());
+    for test in tests {
+        test();
+    }
+}
+
 #[no_mangle]
 pub fn rust_main() -> ! {
     extern "C" {
@@ -40,6 +51,10 @@ pub fn rust_main() -> ! {
         fn boot_stack_lower_bound(); // stack lower bound
         fn boot_stack_top(); // stack top
     }
+
+    #[cfg(test)]
+    test_main();
+
     clear_bss();
     logging::init();
     println!("[kernel] Hello, world!");

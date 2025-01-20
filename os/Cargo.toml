@@ -8,6 +8,7 @@ riscv = { git = "https://github.com/rcore-os/riscv", features = ["inline-asm"] }
 lazy_static = { version = "1.5.0", features = ["spin_no_std"]}
 log = "0.4.22"
 sbi-rt = { version = "0.0.3", features = ["legacy"]}
+#bootloader = "0.11.9"
 
 [profile.dev]
 panic = "abort"
@@ -15,3 +16,4 @@ panic = "abort"
 [profile.release]
 panic = "abort"
 debug = true
+
