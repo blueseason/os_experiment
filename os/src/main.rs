@@ -2,8 +2,12 @@
 #![no_std]
 #![no_main]
 #![feature(custom_test_frameworks)]
+// 需要明确开启， 否则MM heap_allocator 编译失败
+#![feature(alloc_error_handler)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
+
+extern crate alloc;
 
 #[path = "board/qemu.rs"]
 mod board;
@@ -17,6 +21,7 @@ mod console;
 mod lang_item;
 mod loader;
 mod logging;
+mod mm;
 mod sbi;
 mod stack_trace;
 mod sync;
@@ -78,8 +83,10 @@ pub fn rust_main() -> ! {
     );
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
 
+    mm::init();
     trap::init();
-    loader::load_apps();
+    //    mm::heap_allocator::heap_test();
+    //mm::remap_test();
     trap::enable_timer_interrupt();
     timer::set_next_trigger();
     task::run_first_task();

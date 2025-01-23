@@ -1,18 +1,18 @@
 //! Task management implementation
 
+use crate::trap::TrapContext;
 use crate::{
-    config::MAX_APP_NUM,
-    loader::{get_num_app, init_app_cx},
+    loader::{get_app_data, get_num_app},
     println,
     sbi::shutdown,
     sync::UPSafeCell,
     timer::get_time_ms,
 };
+use alloc::vec::Vec;
 use context::TaskContext;
 use lazy_static::*;
 use switch::__switch;
 use task::{TaskControlBlock, TaskStatus};
-
 mod context;
 mod switch;
 // "Module inception" occurs when a module inside a file has the same name as the file itself.
@@ -26,7 +26,7 @@ pub struct TaskManager {
 
 pub struct TaskManagerInner {
     /// task list
-    tasks: [TaskControlBlock; MAX_APP_NUM],
+    tasks: Vec<TaskControlBlock>,
     current_task: usize,
 
     last_timestamp: usize,
@@ -34,17 +34,13 @@ pub struct TaskManagerInner {
 
 lazy_static! {
     pub static ref TASK_MANAGER: TaskManager = {
+        println!("init TASK_MANAGER");
         let num_app = get_num_app();
-        let mut tasks = [TaskControlBlock {
-            task_cx: TaskContext::zero_init(),
-            task_status: TaskStatus::UnInit,
-            user_time: 0,
-            kernel_time: 0,
-        }; MAX_APP_NUM];
+        println!("num_app = {}", num_app);
+        let mut tasks: Vec<TaskControlBlock> = Vec::new();
 
-        for (i, task) in tasks.iter_mut().enumerate() {
-            task.task_cx = TaskContext::goto_restore(init_app_cx(i));
-            task.task_status = TaskStatus::Ready;
+        for i in 0..num_app {
+            tasks.push(TaskControlBlock::new(get_app_data(i), i));
         }
 
         TaskManager {
@@ -94,6 +90,25 @@ impl TaskManager {
         let current = inner.current_task;
         inner.tasks[current].kernel_time += inner.refresh_get_time();
         inner.tasks[current].task_status = TaskStatus::Ready;
+    }
+
+    /// Get the current 'Running' task's token.
+    fn get_current_token(&self) -> usize {
+        let inner = self.inner.exclusive_access();
+        inner.tasks[inner.current_task].get_user_token()
+    }
+
+    /// Get the current 'Running' task's trap contexts.
+    fn get_current_trap_cx(&self) -> &'static mut TrapContext {
+        let inner = self.inner.exclusive_access();
+        inner.tasks[inner.current_task].get_trap_cx()
+    }
+
+    /// Change the current 'Running' task's program break
+    pub fn change_current_program_brk(&self, size: i32) -> Option<usize> {
+        let mut inner = self.inner.exclusive_access();
+        let cur = inner.current_task;
+        inner.tasks[cur].change_program_brk(size)
     }
 
     /// Change the status of current `Running` task into `Exited`.
@@ -196,4 +211,17 @@ pub fn user_time_start() {
 /// 统计用户时间，从现在开始算的是内核时间
 pub fn user_time_end() {
     TASK_MANAGER.user_time_end()
+}
+
+pub fn current_user_token() -> usize {
+    TASK_MANAGER.get_current_token()
+}
+
+/// Get the current 'Running' task's trap contexts.
+pub fn current_trap_cx() -> &'static mut TrapContext {
+    TASK_MANAGER.get_current_trap_cx()
+}
+
+pub fn change_program_brk(size: i32) -> Option<usize> {
+    TASK_MANAGER.change_current_program_brk(size)
 }

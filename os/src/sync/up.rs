@@ -18,4 +18,8 @@ impl<T> UPSafeCell<T> {
     pub fn exclusive_access(&self) -> RefMut<'_, T> {
         self.inner.borrow_mut()
     }
+
+    pub fn as_ptr(&self) -> *mut T {
+        self.inner.as_ptr()
+    }
 }
