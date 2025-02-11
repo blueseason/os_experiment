@@ -17,6 +17,8 @@ pub fn handle_alloc_error(layout: core::alloc::Layout) -> ! {
     panic!("Heap allocation error, layout = {:?}", layout);
 }
 
+// 由于 HEAP_SPACE 是静态的并且被初始化为零（或未初始化），通常链接器会将它放在 BSS 段中。
+// 或者通过 #[link_section = ".bss"] 指定
 lazy_static! {
 /// heap space ([u8; KERNEL_HEAP_SIZE])
 static ref HEAP_SPACE: UPSafeCell<[u8; KERNEL_HEAP_SIZE]> =
